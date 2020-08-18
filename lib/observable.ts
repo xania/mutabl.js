@@ -1,7 +1,7 @@
 import * as Rx from 'rxjs';
 
 export interface Peekable<T> {
-  peek<U>(project: (value: T) => U): U | void;
+  peek<U>(project: (value: T) => U): U;
 }
 
 export type Updater<T> = T | ((a: T) => T | void);
