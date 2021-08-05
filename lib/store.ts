@@ -9,11 +9,11 @@ import {
 } from './observable';
 
 import * as Rx from 'rxjs';
-import { Unsubscribable, Subscription, PartialObserver } from 'rxjs';
+import { PartialObserver, Unsubscribable } from 'rxjs/internal/types';
 
 type Func<T, U> = (a: T) => U;
 
-const __emptySubscription: Rx.Unsubscribable = {
+const __emptySubscription: Unsubscribable = {
   unsubscribe() {},
 };
 const observable =
@@ -21,12 +21,12 @@ const observable =
 
 const empty = '';
 
-interface Parent<T> {
+export interface Parent<T> {
   properties?: Expression<T[keyof T]>[];
   value?: T;
 }
 
-abstract class Value<T> implements Expression<T> {
+export abstract class Value<T> implements Expression<T> {
   public properties: Property<T[keyof T]>[] = [];
   public observers?: PartialObserver<T>[];
 
@@ -48,12 +48,9 @@ abstract class Value<T> implements Expression<T> {
   onChange(
     observer: PartialObserver<T> | Action<T>,
     skipCurrent: boolean
-  ): Rx.Unsubscribable {
+  ): Unsubscribable {
     if (typeof observer === 'function') {
-      return this.onChange(
-        { next: observer },
-        skipCurrent
-      ) as Rx.Unsubscribable;
+      return this.onChange({ next: observer }, skipCurrent) as Unsubscribable;
     }
 
     if (!isNextObserver(observer)) {
@@ -84,10 +81,10 @@ abstract class Value<T> implements Expression<T> {
     } as Unsubscribable;
   }
 
-  subscribe(nextOrObserver?: any, error?: any, complete?: any) {
+  subscribe = (nextOrObserver?: any, error?: any, complete?: any) => {
     const sink = toSubscriber(nextOrObserver, error, complete);
     return this.onChange(sink, false) as Unsubscribable;
-  }
+  };
 
   get<K extends keyof T>(propertyName: K): Property<T[K]> | void {
     const { properties } = this;
@@ -150,19 +147,19 @@ abstract class Value<T> implements Expression<T> {
   }
 }
 
-type ArrayMutation =
-  | { type: 'insert'; index: number }
-  | { type: 'remove'; index: number }
-  | { type: 'move'; from: number; to: number };
+// type ArrayMutation =
+//   | { type: 'insert'; index: number }
+//   | { type: 'remove'; index: number }
+//   | { type: 'move'; from: number; to: number };
 
-export interface ObservableArray<T> {
-  subscribe(observer: NextArrayMutationsObserver<T>): Subscription;
-}
-type ArrayMutationsCallback<T> = (array: T, mutations?: ArrayMutation[]) => any;
+// export interface ObservableArray<T> {
+//   subscribe(observer: NextArrayMutationsObserver<T>): Rx.Subscription;
+// }
+// type ArrayMutationsCallback<T> = (array: T, mutations?: ArrayMutation[]) => any;
 
-type NextArrayMutationsObserver<T> = {
-  next: ArrayMutationsCallback<T>;
-};
+// type NextArrayMutationsObserver<T> = {
+//   next: ArrayMutationsCallback<T>;
+// };
 
 export class ObjectProperty<T> extends Value<T> implements Property<T> {
   constructor(
@@ -265,16 +262,20 @@ export class Store<T> extends Value<T> {
 
 export function asProxy<T>(self: Expression<T>): State<T> {
   return new Proxy<any>(self, {
-    get<K extends keyof T>(parent: Expression<T>, name: K) {
+    get(parent: Expression<T>, name: string | symbol) {
       if (typeof name === 'symbol' || name in self) return (self as any)[name];
 
-      var result = parent.property(name);
+      var result = parent.property(name as keyof T);
       if (typeof result === 'function') return result;
 
       return asProxy(result);
     },
-    set<K extends keyof T>(parent: Value<T>, name: K, value: Updater<T[K]>) {
-      return parent.property(name).update(value);
+    set<K extends keyof T>(
+      parent: Value<T>,
+      name: string | symbol,
+      value: Updater<T[K]>
+    ) {
+      return parent.property(name as keyof T).update(value);
     },
   });
 
