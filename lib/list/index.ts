@@ -1,17 +1,17 @@
 import * as Rx from 'rxjs';
 import * as Ro from 'rxjs/operators';
-import { Expression, Peekable, State, Updatable } from '../observable';
+import { Expression, Updatable } from '../observable';
 import { digest, flush, Value } from '../store';
 import { ListMutation, isMutation, pushItem } from './list-mutation';
 
-export interface ListSource<T> extends Rx.Subscribable<ListMutation<T>> {
+export interface ListStore<T> extends Rx.Subscribable<ListMutation<T>> {
   add(m: ListMutation<T>): void;
   readonly length: number;
 }
 
-export function asListSource<T>(
+export function asListStore<T>(
   source: T[] | (Expression<T[]> & Updatable<T[]>)
-): ListSource<T> {
+): ListStore<T> {
   if (Array.isArray(source)) return fromArray(source);
 
   return fromBindable<T>(source);
@@ -19,8 +19,8 @@ export function asListSource<T>(
 
 function fromBindable<T>(
   bindable: Expression<T[]> & Updatable<T[]>
-): ListSource<T> {
-  var snapshot: T[] = bindable.peek(e => e) || [];
+): ListStore<T> {
+  var snapshot: T[] = bindable.peek((e) => e) || [];
   var listItems: ListItem<T>[] = snapshot.map(createItem);
   const mutations = new Rx.Subject<ListMutation<ListItem<T>>>();
 
@@ -95,7 +95,7 @@ function fromBindable<T>(
   }
 }
 
-function fromArray<T>(snapshot: T[]): ListSource<T> {
+function fromArray<T>(snapshot: T[]): ListStore<T> {
   const mutations = new Rx.Subject<ListMutation<T>>();
 
   return {

@@ -6,7 +6,7 @@ export interface Peekable<T> {
 
 export type Updater<T> = T | ((a: T) => T | void);
 
-export interface Updatable<T> extends Peekable<T> {
+export interface Updatable<T> {
   update(value: Updater<T>): boolean;
 }
 
