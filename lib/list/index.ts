@@ -7,8 +7,13 @@ import { ListMutation, isMutation, pushItem } from './list-mutation';
 export interface ListStore<T> extends Rx.Subscribable<ListMutation<T>> {
   add(m: ListMutation<T>): void;
   readonly length: number;
+  peek<R>(fun: (snapshot: T[]) => R): R;
 }
 
+export function asListStore<T>(source: T[]): ListStore<T>;
+export function asListStore<T>(
+  source: Expression<T[]> & Updatable<T[]>
+): ListStore<T>;
 export function asListStore<T>(
   source: T[] | (Expression<T[]> & Updatable<T[]>)
 ): ListStore<T> {
@@ -25,6 +30,9 @@ function fromBindable<T>(
   const mutations = new Rx.Subject<ListMutation<ListItem<T>>>();
 
   return {
+    peek(fn) {
+      return fn(snapshot);
+    },
     get length() {
       return listItems.length;
     },
@@ -49,7 +57,7 @@ function fromBindable<T>(
   }
 
   function createItem(v, i) {
-    const item = new ListItem<T>(null, i, v);
+    const item = new ListItem<T>(snapshot, i, v);
     item.subscribe(flushChanges);
     return item;
   }
@@ -83,6 +91,9 @@ function fromBindable<T>(
       if (index >= 0) {
         listItems.splice(index, 1);
         snapshot.splice(index, 1);
+        for (let i = index; i < listItems.length; i++) {
+          listItems[i].index = i;
+        }
       }
       flushChanges();
       mutations.next({ type: 'remove', predicate: index });
@@ -91,6 +102,12 @@ function fromBindable<T>(
       swapItems(listItems, from, to);
       swapItems(snapshot, from, to);
       mutations.next(mut);
+    } else if (mut.type == 'update') {
+      const { index } = mut;
+      const listItem = listItems[index];
+      listItem.update(mut.callback);
+      const dirty = digest(listItem);
+      flush(dirty);
     }
   }
 }
@@ -99,6 +116,9 @@ function fromArray<T>(snapshot: T[]): ListStore<T> {
   const mutations = new Rx.Subject<ListMutation<T>>();
 
   return {
+    peek(fn) {
+      return fn(snapshot);
+    },
     get length() {
       return snapshot.length;
     },
@@ -153,14 +173,20 @@ function fromArray<T>(snapshot: T[]): ListStore<T> {
   }
 }
 
+type UpdateCallback<T> = (item: T) => T;
+
 class ListItem<T> extends Value<T> {
-  constructor(private list: T[], private index: number, value?: T) {
+  constructor(private list: T[], public index: number, value?: T) {
     super(undefined, value);
   }
 
-  update(newValue: T) {
+  update(newValue: T);
+  update(callback: UpdateCallback<T>);
+  update(newValueOrCallback: any) {
     const { list, index } = this;
-    list[index] = newValue;
+    if (typeof newValueOrCallback === 'function') {
+      Object.assign(list[index], newValueOrCallback(list[index]));
+    } else list[index] = newValueOrCallback;
   }
 }
 

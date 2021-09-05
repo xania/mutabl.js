@@ -3,7 +3,8 @@ export type ListMutation<T = unknown> =
   | InsertItem<T>
   | MoveItem
   | RemoveItem<T>
-  | ResetItems<T>;
+  | ResetItems<T>
+  | UpdateItem<T>;
 
 interface PushItem<T> {
   type: 'push';
@@ -31,6 +32,23 @@ interface ResetItems<T> {
   items: T[];
 }
 
+interface UpdateItem<T> {
+  type: 'update';
+  index: number;
+  callback(item: T);
+}
+
+export function updateItem<T>(
+  index: number,
+  callback: (item: T) => void
+): UpdateItem<T> {
+  return {
+    type: 'update',
+    index,
+    callback,
+  };
+}
+
 export function pushItem<T>(values: T): PushItem<T> {
   return {
     type: 'push',
@@ -44,7 +62,9 @@ export function insertItem<T>(values: T, index: number): InsertItem<T> {
     index,
   };
 }
-export function removeItem<T>(predicate: (t: T) => boolean): RemoveItem<T> {
+export function removeItem<T>(
+  predicate: number | ((t: T) => boolean)
+): RemoveItem<T> {
   return {
     type: 'remove',
     predicate,
