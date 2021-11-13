@@ -1,8 +1,9 @@
 export type ListMutation<T = unknown> =
   | PushItem<T>
-  | InsertItem<T>
   | MoveItem
   | RemoveItem<T>
+  | RemoveItemAt
+  | InsertItem<T>
   | ResetItems<T>
   | UpdateItem<T>;
 
@@ -17,16 +18,22 @@ interface MoveItem {
   to: number;
 }
 
+interface RemoveItem<T> {
+  type: 'remove';
+  predicate(t: T): boolean;
+}
+
+interface RemoveItemAt {
+  type: 'remove';
+  index: number;
+}
+
 interface InsertItem<T> {
   type: 'insert';
   values: T;
   index: number;
 }
 
-interface RemoveItem<T> {
-  type: 'remove';
-  predicate;
-}
 interface ResetItems<T> {
   type: 'reset';
   items: T[];
@@ -35,7 +42,7 @@ interface ResetItems<T> {
 interface UpdateItem<T> {
   type: 'update';
   index: number;
-  callback(item: T);
+  callback(item: T): void;
 }
 
 export function updateItem<T>(
@@ -62,12 +69,19 @@ export function insertItem<T>(values: T, index: number): InsertItem<T> {
     index,
   };
 }
+
 export function removeItem<T>(
-  predicate: number | ((t: T) => boolean)
-): RemoveItem<T> {
+  predicateOrIndex: number | ((t: T) => boolean)
+): RemoveItem<T> | RemoveItemAt {
+  if (typeof predicateOrIndex === 'function')
+    return {
+      type: 'remove',
+      predicate: predicateOrIndex,
+    };
+
   return {
     type: 'remove',
-    predicate,
+    index: predicateOrIndex,
   };
 }
 
@@ -80,18 +94,17 @@ export function resetItems<T>(items: T[]): ResetItems<T> {
 
 type Prop<T, K extends keyof T> = T[K];
 
-export function isMutation<T = unknown>(
-  m: any
-): m is ListMutation<T> | RemoveItem<T> {
-  if (!m) {
+export function isMutation<T = unknown>(mut: any): mut is ListMutation<T> {
+  if (!mut) {
     return false;
   }
-  const type: Prop<ListMutation, 'type'> = m.type;
+  const type: Prop<ListMutation, 'type'> = mut.type;
   return (
-    type === 'remove' ||
     type === 'push' ||
     type === 'insert' ||
     type === 'reset' ||
-    type === 'move'
+    type === 'remove' ||
+    type === 'move' ||
+    type === 'update'
   );
 }

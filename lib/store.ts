@@ -5,11 +5,13 @@ import {
   Property,
   State,
   isNextObserver,
-  toSubscriber,
 } from './observable';
 
-import * as Rx from 'rxjs';
-import { PartialObserver, Unsubscribable } from 'rxjs/internal/types';
+import {
+  NextObserver,
+  PartialObserver,
+  Unsubscribable,
+} from 'rxjs/internal/types';
 
 type Func<T, U> = (a: T) => U;
 
@@ -81,9 +83,8 @@ export abstract class Value<T> implements Expression<T> {
     } as Unsubscribable;
   }
 
-  subscribe = (nextOrObserver?: any, error?: any, complete?: any) => {
-    const sink = toSubscriber(nextOrObserver, error, complete);
-    return this.onChange(sink, false) as Unsubscribable;
+  subscribe = (nextObserver: NextObserver<T>) => {
+    return this.onChange(nextObserver, false) as Unsubscribable;
   };
 
   get<K extends keyof T>(propertyName: K): Property<T[K]> | void {
@@ -275,7 +276,7 @@ export function asProxy<T>(self: Expression<T>): State<T> {
       name: string | symbol,
       value: Updater<T[K]>
     ) {
-      return parent.property(name as keyof T).update(value);
+      return parent.property(name as K).update(value);
     },
   });
 
@@ -380,7 +381,7 @@ class ListItem<T> extends Value<T> {
     super(null, value);
   }
 
-  update = (newValue: T | Func<T, void | T>, autoRefresh: boolean = true) => {
+  update = (newValue: T | Func<T, T>, autoRefresh: boolean = true) => {
     if (!updateValue(this, newValue)) {
       return false;
     }

@@ -1,7 +1,7 @@
 import * as Rx from 'rxjs';
 
 export interface Peekable<T> {
-  peek<U>(project: (value: T) => U): U;
+  peek<U>(project: (value: T) => U): U | void;
 }
 
 export type Updater<T> = T | ((a: T) => T | void);
@@ -54,8 +54,7 @@ export function isSubscribable(o: any): o is Rx.Subscribable<unknown> {
 
 export type StateView<T> = {
   [K in keyof T]: T[K] extends (...args: any) => any ? T[K] : State<T[K]>;
-} &
-  Expression<T>;
+} & Expression<T>;
 
 export type State<T> = StateView<T> & Updatable<T> & Expression<T>;
 
@@ -88,7 +87,11 @@ export function toSubscriber(nextOrObserver: any, error: any, complete: any) {
       },
       complete() {},
     };
-    return new Rx.Subscriber(emptyObserver);
+    return emptyObserver;
   }
-  return new Rx.Subscriber(nextOrObserver, error, complete);
+  return {
+    next: nextOrObserver,
+    error,
+    complete,
+  };
 }
