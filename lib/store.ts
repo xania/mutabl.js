@@ -212,36 +212,15 @@ export class Store<T> extends Value<T> {
     super(null, value);
   }
 
-  //   expr(expr: string) {
-  //     var parts = expr.split('.');
-  //     return (value: T) => {
-  //       var obj = this.value;
-  //       var len = parts.length - 1;
-  //       for (var i = 0; i < len; i++) {
-  //         var prop = parts[i];
-  //         var child = obj[prop];
-  //         if (!child) {
-  //           obj[prop] = child = {};
-  //         }
-  //         obj = child;
-  //       }
-  //       var last = parts[len];
-  //       obj[last] = value;
-  //     };
-  //   }
-
   asProxy(): State<T> {
     return asProxy(this);
   }
 
-  update = (
-    newValue: Updater<T>,
-    autoRefresh: boolean = true,
-    partial?: boolean
-  ) => {
-    if (!updateValue(this, newValue, partial)) {
+  update = (newValue: Updater<T>) => {
+    if (!updateValue(this, newValue)) {
       return false;
     }
+    const { autoRefresh } = this;
 
     if (autoRefresh) {
       const dirty = digest(this);
@@ -317,10 +296,18 @@ export function digest(root: {
   if (!root) {
     return [];
   }
-  var stack = [root];
-  var stackLength: number = stack.length;
-  var dirtyLength: number = 0;
-  var dirty = [];
+  return digestMany([root]);
+}
+
+export function digestMany(
+  stack: {
+    properties?: Property<any>[];
+    value?: any;
+  }[]
+): any[] {
+  let stackLength: number = stack.length;
+  let dirtyLength: number = 0;
+  const dirty = [];
 
   while (stackLength--) {
     const parent = stack[stackLength];
@@ -374,32 +361,20 @@ export function flush(dirty: any[]) {
   }
 }
 
-export { ListItem };
-
-class ListItem<T> extends Value<T> {
-  constructor(public value: T, public index: number) {
-    super(null, value);
+export function flushOne(dirty: any) {
+  const { observers } = dirty;
+  if (observers) {
+    var e = observers.length | 0;
+    while (e--) {
+      let observer = observers[e];
+      observer.next(dirty.value);
+    }
   }
-
-  update = (newValue: T | Func<T, T>, autoRefresh: boolean = true) => {
-    if (!updateValue(this, newValue)) {
-      return false;
-    }
-
-    if (autoRefresh) {
-      const dirty = digest(this);
-      dirty.push(this);
-      flush(dirty);
-      return true;
-    }
-    return true;
-  };
 }
 
 export function updateValue<T>(
   target: { value?: T },
-  newValue: Updater<T>,
-  partial?: boolean
+  newValue: Updater<T>
 ): boolean {
   // ignore undefined
   if (newValue === undefined) return false;
@@ -416,46 +391,6 @@ export function updateValue<T>(
     } else {
       return updateValue(target, retval);
     }
-  } else if (
-    partial === true &&
-    !!targetValue &&
-    typeof targetValue === 'object' &&
-    !!newValue &&
-    typeof newValue === 'object'
-  ) {
-    let b = false;
-    const stack: any[] = [[targetValue, newValue]];
-    const merged = new Set<any>();
-    while (stack.length > 0) {
-      const [targetValue, sourceValue] = stack.pop();
-      if (!merged.add(targetValue))
-        // stop recursion
-        continue;
-
-      for (let prop in sourceValue) {
-        const sourcePropValue = sourceValue[prop];
-        const targetPropValue = targetValue[prop];
-        if (
-          sourcePropValue === targetPropValue ||
-          typeof targetPropValue === 'function'
-        )
-          continue;
-        if (
-          targetPropValue &&
-          typeof targetPropValue === 'object' &&
-          sourcePropValue &&
-          typeof sourcePropValue === 'object'
-        ) {
-          stack.push([targetPropValue, sourcePropValue]);
-        } else {
-          if (targetPropValue !== sourcePropValue) {
-            targetValue[prop] = sourcePropValue;
-            b = true;
-          }
-        }
-      }
-    }
-    return b;
   } else {
     target.value = newValue as any;
     return true;

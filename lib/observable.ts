@@ -56,7 +56,7 @@ export type StateView<T> = {
   [K in keyof T]: T[K] extends (...args: any) => any ? T[K] : State<T[K]>;
 } & Expression<T>;
 
-export type State<T> = StateView<T> & Updatable<T> & Expression<T>;
+export type State<T> = T & StateView<T> & Updatable<T>;
 
 export function isNextObserver<T>(value: any): value is Rx.NextObserver<T> {
   if (value === null) return false;
