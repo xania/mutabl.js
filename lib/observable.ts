@@ -1,4 +1,4 @@
-import * as Rx from 'rxjs';
+import { NextObserver, Subscribable } from './rxjs-abstraction';
 
 export interface Peekable<T> {
   peek<U>(project: (value: T) => U): U | void;
@@ -16,7 +16,7 @@ export interface Property<T> extends Expression<T>, Updatable<T> {
 }
 
 export interface Expression<T = unknown>
-  extends Rx.Subscribable<T>,
+  extends Subscribable<T>,
     Peekable<T>,
     Liftable<T> {
   property<K extends keyof T>(propertyName: K): Property<T[K]>;
@@ -44,7 +44,7 @@ export function isLiftable(o: any): o is Expression<unknown> {
   return typeof o.lift === 'function';
 }
 
-export function isSubscribable(o: any): o is Rx.Subscribable<unknown> {
+export function isSubscribable(o: any): o is Subscribable<unknown> {
   if (o === null || typeof o !== 'object') return false;
 
   if (typeof o.subscribe !== 'function') return false;
@@ -58,7 +58,7 @@ export type StateView<T> = {
 
 export type State<T> = T & StateView<T> & Updatable<T>;
 
-export function isNextObserver<T>(value: any): value is Rx.NextObserver<T> {
+export function isNextObserver<T>(value: any): value is NextObserver<T> {
   if (value === null) return false;
   if (typeof value === 'object') return typeof value.next === 'function';
 
@@ -74,7 +74,7 @@ declare global {
 
 export function toSubscriber(nextOrObserver: any, error: any, complete: any) {
   if (nextOrObserver) {
-    if (nextOrObserver instanceof Rx.Subscriber) {
+    if (isNextObserver(nextOrObserver)) {
       return nextOrObserver;
     }
   }

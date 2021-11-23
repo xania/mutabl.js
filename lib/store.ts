@@ -1,3 +1,4 @@
+import { NextObserver, Unsubscribable } from './rxjs-abstraction';
 import {
   Expression,
   Action,
@@ -6,12 +7,6 @@ import {
   State,
   isNextObserver,
 } from './observable';
-
-import {
-  NextObserver,
-  PartialObserver,
-  Unsubscribable,
-} from 'rxjs/internal/types';
 
 type Func<T, U> = (a: T) => U;
 
@@ -30,7 +25,7 @@ export interface Parent<T> {
 
 export abstract class Value<T> implements Expression<T> {
   public properties: Property<T[keyof T]>[] = [];
-  public observers?: PartialObserver<T>[];
+  public observers?: NextObserver<T>[];
 
   constructor(public parent: Parent<any> | null, public value?: T) {}
 
@@ -48,7 +43,7 @@ export abstract class Value<T> implements Expression<T> {
   };
 
   onChange(
-    observer: PartialObserver<T> | Action<T>,
+    observer: NextObserver<T> | Action<T>,
     skipCurrent: boolean
   ): Unsubscribable {
     if (typeof observer === 'function') {
