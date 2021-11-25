@@ -20,7 +20,7 @@
     "trailingComma": "es5",
     "tabWidth": 2
   },
-  "name": "mutabl.js",
+  "name": "@xania/mutabl.js",
   "author": "xania",
   "devDependencies": {
     "husky": "^4.2.5",
