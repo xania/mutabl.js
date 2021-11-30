@@ -240,6 +240,10 @@ export class Store<T> extends Value<T> {
   }
 }
 
+export function useState<T>(value: T) {
+  return asProxy(new Store<T>(value));
+}
+
 export function asProxy<T>(self: Expression<T>): State<T> {
   return new Proxy<any>(self, {
     get(parent: Expression<T>, name: string | symbol) {
