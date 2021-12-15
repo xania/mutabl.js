@@ -116,9 +116,9 @@ export abstract class Value<T> implements Expression<T> {
   }
 
   toString(): string {
-    var value = this.value;
-    if (typeof value === 'string') return value;
-    else if (value === void 0 || value === null) return empty;
+    const { value } = this;
+    if (value === void 0 || value === null) return empty;
+    else if (typeof value === 'string') return value;
     else return value + '';
   }
 
