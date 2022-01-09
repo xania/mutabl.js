@@ -3,6 +3,7 @@
   "license": "MIT",
   "main": "lib/index.ts",
   "module": "lib/index.ts",
+  "private": false,
   "files": [
     "dist",
     "lib"
@@ -26,7 +27,7 @@
     "husky": "^4.2.5",
     "tsdx": "^0.13.2",
     "tslib": "^2.3.1",
-    "typescript": "^3.8.3"
+    "typescript": "^4.5.4"
   },
   "peedDependencies": {
     "rxjs": "7.4.0"
